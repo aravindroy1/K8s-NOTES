@@ -1,0 +1,276 @@
+# 📘 Dynamic Provisioning using NFS in Kubernetes (Documentation)
+
+---
+
+# 🔹 1. Objective
+
+To implement **Dynamic Provisioning** in Kubernetes using an **NFS server**, where storage (PV) is automatically created when a PVC is requested.
+
+---
+
+# 🔹 2. Environment Setup
+
+* Kubernetes Cluster: kubeadm (1 Master + 2 Worker Nodes)
+* External NFS Server: Configured on separate instance
+* Storage Type: NFS (Shared Storage)
+
+---
+
+# 🔹 3. Architecture
+
+```
+PVC → StorageClass → CSI Driver → PV (Auto Created) → NFS Server
+```
+
+---
+
+# 🔹 4. Pre-requisites
+
+## ✅ NFS Server
+
+* Shared directory created: `/nfs-data`
+* Permissions set:
+
+```
+sudo chown -R nobody:nogroup /nfs-data
+sudo chmod -R 777 /nfs-data
+```
+
+* Export configured in `/etc/exports`:
+
+```
+/nfs-data *(rw,sync,no_subtree_check,no_root_squash)
+```
+
+* Applied:
+
+```
+sudo exportfs -a
+sudo systemctl restart nfs-kernel-server
+```
+
+---
+
+## ✅ Worker Nodes
+
+Installed NFS client:
+
+```
+sudo apt install nfs-common -y
+```
+
+---
+
+# 🔹 5. CSI Driver Installation
+
+Installed NFS CSI Driver using Helm:
+
+```
+helm repo add csi-driver-nfs https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+helm repo update
+helm install nfs-csi csi-driver-nfs/csi-driver-nfs --namespace kube-system
+```
+
+---
+
+## ✅ Verification
+
+```
+kubectl get pods -n kube-system | grep nfs
+```
+
+Expected:
+
+```
+nfs-csi-controller-xxxxx   Running
+nfs-csi-node-xxxxx         Running
+```
+
+---
+
+# 🔹 6. StorageClass Creation
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-dynamic
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: <NFS-SERVER-IP>
+  share: /nfs-data
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+```
+
+---
+
+## ✅ Apply
+
+```
+kubectl apply -f storageclass.yaml
+```
+
+---
+
+# 🔹 7. PersistentVolumeClaim (PVC)
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fitness-pvc
+spec:
+  storageClassName: nfs-dynamic
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+---
+
+## ✅ Apply
+
+```
+kubectl apply -f pvc.yaml
+```
+
+---
+
+# 🔹 8. Dynamic Provisioning Flow
+
+```
+PVC created
+   ↓
+StorageClass selected
+   ↓
+CSI Driver triggered
+   ↓
+Creates folder in NFS (/nfs-data/pvc-xxxxx)
+   ↓
+Creates PV automatically
+   ↓
+PVC ↔ PV Bound
+```
+
+---
+
+# 🔹 9. Verification
+
+## ✅ Check PVC & PV
+
+```
+kubectl get pvc
+kubectl get pv
+```
+
+Expected:
+
+```
+fitness-pvc   Bound
+pvc-xxxxx     Bound   (Auto-created PV)
+```
+
+---
+
+## ✅ Check NFS Server
+
+```
+ls /nfs-data
+```
+
+Expected:
+
+```
+pvc-xxxxx/
+```
+
+---
+
+# 🔹 10. Application Integration (MongoDB)
+
+```yaml
+volumeMounts:
+- name: fitness-data
+  mountPath: /data/db
+
+volumes:
+- name: fitness-data
+  persistentVolumeClaim:
+    claimName: fitness-pvc
+```
+
+---
+
+# 🔹 11. Testing
+
+## ✅ Insert Data
+
+```
+kubectl exec -it <mongo-pod> -- mongosh
+```
+
+```
+db.test.insertOne({name:"Aravind"})
+```
+
+---
+
+## ✅ Delete Pod
+
+```
+kubectl delete pod <mongo-pod>
+```
+
+---
+
+## ✅ Verify Persistence
+
+* Reconnect to MongoDB
+* Data should still exist
+
+---
+
+## ✅ Check in NFS
+
+```
+ls /nfs-data/pvc-xxxxx
+```
+
+MongoDB files present:
+
+```
+WiredTiger
+collection-*.wt
+index-*.wt
+```
+
+---
+
+# 🔹 12. Key Observations
+
+* PV is automatically created (no manual PV needed)
+* Each PVC creates a separate directory in NFS
+* Supports multi-node access (ReadWriteMany)
+* Data persists even after Pod deletion
+
+---
+
+# 🔹 13. Comparison
+
+| Feature     | Static | Dynamic   |
+| ----------- | ------ | --------- |
+| PV Creation | Manual | Automatic |
+| Effort      | High   | Low       |
+| Scalability | Low    | High      |
+
+---
+
+# 🎯 Conclusion
+
+Dynamic provisioning using NFS CSI driver successfully enables **automatic storage creation**, improving scalability and reducing manual effort in Kubernetes environments.
+
+---
+We practiced dynamic provising with one repo by making docker file and k8 manifests 

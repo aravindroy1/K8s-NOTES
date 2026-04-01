@@ -1,0 +1,43 @@
+*Container is the process on machine
+*Process ID
+Process id 1 is the heart of linuc we cant kill that 
+*Why we containers are light weight 
+*Namespace 
+*Cgroups
+*https://github.com/vilasvarghese/docker-k8s/blob/master/notes/day1/Day1%20Commands
+*Linux kernel
+
+*Images:Layered file sysytem it includes everything to run the code 
+*Security while writing a docker file :reduce the surafec area of attack of image *multi stage * clear all unwanted things *Create a user and use that user *Scanning Image 
+*
+
+*Pod:
+ -All the cont in the pod are  colocated(they are running in the same machine) and coschedule(cont start at a time)
+
+
+Networking:
+  - IP Adress:
+    DHCP
+     *Unique address assigned to a device(machine)
+    NAtting:
+    Dnatting
+    ARp protocaol
+    Gateway 
+    Subnetting:
+    192.168.1.0/24 -- 2^8=2^32-24=2^8=256 need to divide to 3 networks 
+
+    
+    First Ip reserved for network id 
+    Last IP reserved for  broadcast network
+Docker Networking:
+  - eth0,docker0,veth, containers ip and network
+
+
+K8s Networking:
+  - How 2 containers talk to each other inside the pod -net ns,calico
+    pod- pods communication
+    pod-svc communication
+
+ - DNS IN LINUX(/ETC/RESOLV.CONFIG),Core DNS
+   
+WHat is end points?

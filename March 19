@@ -1,0 +1,279 @@
+*What  is API gate way 
+*WHat is GATE way api 
+*AND difference b/w them 
+*What is http route 
+*If ur application deployed in a cluster if ur using service type *cluster ip svc how will able to expose the application to the internet 
+
+KGATEWAY ()envoy
+Ingress
+Proxy server i kubernetes
+What is envoy proxy server in kgateway      what are the roles and responsibilities of envoy and proxy server
+How the request reaches from user to pod 
+need to install gateway 
+and http routes 
+get svc gateway 
+
+
+
+# 🚀 Kubernetes + HAProxy + Gateway API Notes
+
+## 📌 Objective
+
+Expose multiple microservices running inside Kubernetes to external users using:
+
+* HAProxy (Public Entry)
+* Gateway API (Routing)
+* HTTPRoute (Path-based routing)
+
+---
+
+# 🧱 Architecture Overview
+
+User Request Flow:
+
+```
+User (Browser / curl)
+        ↓
+HAProxy (Public IP)
+        ↓
+NodeIP:NodePort
+        ↓
+Gateway (kgateway)
+        ↓
+HTTPRoute (Path-based routing + rewrite)
+        ↓
+Service (ClusterIP)
+        ↓
+Pod (Application)
+```
+
+---
+
+# 🧠 Key Concepts
+
+## 1. Deployment
+
+* Runs application containers
+* Creates Pods
+
+## 2. Service (ClusterIP)
+
+* Internal communication inside Kubernetes
+* Cannot be accessed externally
+
+## 3. Gateway API
+
+* Entry point inside cluster
+* Works like a router
+
+## 4. HTTPRoute
+
+* Defines routing rules
+* Example:
+
+  * `/cart` → cart service
+  * `/fitness` → fitness service
+
+## 5. HAProxy
+
+* External load balancer
+* Accepts public traffic and forwards to Kubernetes
+
+---
+
+# ⚙️ What We Implemented
+
+## ✅ Step 1: Created 5 Microservices
+
+* ey-cart
+* fitness
+* flip
+* kyndrl
+* transaction
+
+Each has:
+
+* Deployment
+* ClusterIP Service
+
+---
+
+## ✅ Step 2: Installed Gateway (kgateway)
+
+```bash
+helm install kgateway ...
+```
+
+---
+
+## ✅ Step 3: Created Gateway
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: aravind-gateway
+  namespace: aravind-ns
+spec:
+  gatewayClassName: kgateway
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+```
+
+---
+
+## ✅ Step 4: Created HTTPRoute (Path Routing)
+
+Example:
+
+```yaml
+- matches:
+  - path:
+      type: PathPrefix
+      value: /cart
+  backendRefs:
+  - name: ey-cart-service
+    port: 80
+```
+
+---
+
+## ❗ Problem Faced
+
+### Issue:
+
+```
+Cannot GET /cart
+```
+
+### Reason:
+
+* Applications support `/`
+* But we accessed `/cart`
+
+---
+
+## ✅ Solution: URL Rewrite
+
+```yaml
+filters:
+- type: URLRewrite
+  urlRewrite:
+    path:
+      type: ReplacePrefixMatch
+      replacePrefixMatch: /
+```
+
+👉 This converts:
+
+```
+/cart → /
+```
+
+---
+
+# 🌐 HAProxy Configuration
+
+```cfg
+frontend http_front
+    bind *:80
+    default_backend k8s_gateway
+
+backend k8s_gateway
+    balance roundrobin
+    server worker1 10.0.1.146:30844
+    server worker2 10.0.1.61:30844
+```
+
+---
+
+# 🔥 Important Fixes Done
+
+## 1. Pods in Pending State
+
+✔️ Reduced resource requests
+
+---
+
+## 2. Network Issue
+
+✔️ Fixed AWS Security Group
+
+```
+Source: 10.0.0.0/16
+```
+
+---
+
+## 3. HAProxy Error (503)
+
+✔️ Removed strict health checks
+✔️ Fixed backend configuration
+
+---
+
+## 4. Routing Issue
+
+✔️ Added URL Rewrite
+
+---
+
+# 🧪 Testing Commands
+
+```bash
+# Test NodePort
+curl 10.0.1.146:30844/cart
+
+# Test via HAProxy
+http://<HAPROXY-IP>/cart
+```
+
+---
+
+# 🎯 Final Working URLs
+
+```
+http://<HAPROXY-IP>/cart
+http://<HAPROXY-IP>/fitness
+http://<HAPROXY-IP>/flip
+http://<HAPROXY-IP>/kyndrl
+http://<HAPROXY-IP>/transaction
+```
+
+---
+
+# 🧠 Final Summary
+
+| Component | Role                       |
+| --------- | -------------------------- |
+| HAProxy   | Public entry point         |
+| NodePort  | External access to cluster |
+| Gateway   | Internal entry             |
+| HTTPRoute | Routing logic              |
+| Service   | Internal connection        |
+| Pod       | Application                |
+
+---
+
+# 💥 One-Line Memory
+
+👉
+**External → HAProxy → NodePort → Gateway → Route → Service → Pod**
+
+---
+
+# 🚀 Conclusion
+
+We successfully built a **production-level microservices architecture** using:
+
+* Kubernetes
+* Gateway API
+* HAProxy
+* Path-based routing
+* URL rewriting
+
+---
+
+# ⭐ End

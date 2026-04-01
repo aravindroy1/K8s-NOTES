@@ -1,0 +1,8 @@
+Studied about helm charts 
+*charts
+values
+helm helpers 
+
+1)How to use conditional Statemnets and loops ina helm charts when u are going to planning for relasese of na application 
+2)How u are going to validate that weather there is an yaml file existed or not before u are going to load the  yaml 
+3)When u are executing the cpmand helm install in which order all the helm files are execute who is the responsibility for this and which component  comes in picture 

@@ -1,0 +1,76 @@
+StateFull sets:
+Deployement sets 
+Daemon sets 
+
+
+StateFull sets:
+  -It maintain order 
+  *Headless service 
+
+1)Without clusterip inside the cluster how we are going to commuicate or distribute traffic to he pods 
+2)What is podDns where we can find the dns 
+#)How headless service it is related to statefullsets what is the need of it 
+
+we implemted a Duniversity repo 
+
+and probes 
+liveness ,redness 
+1)Before routing traffic to a pod why do we need to check health  of the pod.
+
+  - 1) Avoid sending traffic to broken pods
+    2) Ensure application is fully ready
+    3) Prevent downtime (HIGH AVAILABILITY)
+2)In a pod how do you going to check helath.
+  - Kubernetes uses Probes to check container health
+    1) Readiness Probe
+          Checks: “Can this pod receive traffic?”
+          If fails → pod is removed from service
+    2) Liveness Probe
+          Checks: “Is this container alive?”
+          If fails → container is restarted
+    3) Startup Probe (optional)
+          For slow-start apps
+          Gives time before liveness starts
+3)which protocol we need follow which request what reposne we have to get to define or dclare the container is in health status
+   - Kubernetes supports 3 ways (protocols):
+     1)HTTP (Most Common ⭐) - 👉 Kubernetes sends: --> GET /health-->👉 Expected response:200 OK ✅-->❌ If:500 / timeout → unhealthy
+
+     2) TCP Check--👉 Checks:“Kubernetes checks if port is open(Is port open?)”-->✅ If connection succeeds →healthy or ❌ If not → unhealthy
+
+     3)  Command (Exec)-- 👉 If command:exits 0 → healthy ✅ or exits non-zero → unhealthy ❌ 
+
+
+4)What are the various protocols or paths we are using to check the health of teh container 
+
+    -- 1) HTTP Probe (Most Common)
+        📌 Common paths used
+            /health
+            /healthz
+            /ready
+            /status
+
+        2)TCP Probe -Kubernetes checks if port is open
+          
+          📌 Use case
+               Databases (MySQL, MariaDB)
+               Simple services without HTTP endpoint
+
+        3) Exec (Command) Probe:
+           
+            📌 How it works
+                - Runs a command inside container
+                   livenessProbe:
+                        exec:
+                            command:
+                            - cat
+                            - /tmp/healthy
+| Protocol | How it checks            | Used for        |
+| -------- | ------------------------ | --------------- |
+| HTTP     | API endpoint (`/health`) | Web apps        |
+| TCP      | Port open                | DB, simple apps |
+| Exec     | Command execution        | Custom checks   |
+
+🔥 Real DevOps Usage (Your Project)
+Backend → HTTP (/health)
+MariaDB → TCP (3306)
+                

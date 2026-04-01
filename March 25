@@ -1,0 +1,229 @@
+Static Provisioning:
+
+Pv: Persistence volume
+PVC: Persistence volume Claim
+
+so here 
+
+# 📘 Kubernetes Storage Notes: Static vs Dynamic Provisioning
+
+---
+
+# 🔹 1. Why Storage is Needed?
+
+* Pods are **ephemeral (temporary)**
+* If a Pod is deleted → **data is lost**
+* Databases like MongoDB need **persistent storage**
+
+👉 Solution: **Persistent Volumes (PV) & Persistent Volume Claims (PVC)**
+
+---
+
+# 🔹 2. Key Components
+
+| Component                     | Meaning                        |
+| ----------------------------- | ------------------------------ |
+| PV (Persistent Volume)        | Actual storage (disk)          |
+| PVC (Persistent Volume Claim) | Request for storage            |
+| StorageClass                  | Defines how storage is created |
+
+---
+
+# 🔹 3. STATIC PROVISIONING
+
+Old Pod → PVC → PV → Data
+   ↓ delete
+New Pod → SAME PVC → SAME PV → SAME Data
+
+## ✅ Definition
+
+Storage (PV) is **manually created by admin** before application uses it.
+
+---
+
+## 🔹 Flow
+
+1. Admin creates **PV**
+2. Developer creates **PVC**
+3. Kubernetes binds PVC ↔ PV
+4. Pod uses PVC
+
+---
+
+## 🔹 Architecture Flow
+
+```
+Pod → PVC → PV → Node Disk
+```
+
+---
+
+## 🔹 Example
+
+### PV
+
+```
+/data/mongo (node storage)
+```
+
+### PVC
+
+```
+Request: 1Gi storage
+```
+
+---
+
+## 🔹 Use Cases
+
+* On-premise environments
+* Predefined storage systems
+* Learning / testing
+
+---
+
+## 🔹 Advantages
+
+✔ Simple
+✔ Full control over storage
+
+---
+
+## ❌ Drawbacks (IMPORTANT)
+
+❌ Manual work (admin must create PV)
+❌ Not scalable
+❌ Time-consuming
+❌ Hard to manage in large systems
+❌ Wastage if PV unused
+
+---
+
+# 🔥 PROBLEM WITH STATIC
+
+👉 If many apps request storage:
+
+* Admin must create many PVs manually ❌
+* Slow and inefficient ❌
+
+---
+
+# 🔹 4. DYNAMIC PROVISIONING
+
+## ✅ Definition
+
+Storage is **automatically created when PVC is requested**
+
+---
+
+## 🔹 Extra Component
+
+👉 **StorageClass**
+
+Defines:
+
+* Type of storage (AWS, Azure, etc.)
+* How to create it
+
+---
+
+## 🔹 Flow
+
+1. Create **StorageClass**
+2. Create **PVC**
+3. Kubernetes automatically creates **PV**
+4. PVC binds to PV
+5. Pod uses PVC
+
+---
+
+## 🔹 Architecture Flow
+
+```
+Pod → PVC → StorageClass → Auto PV → Storage
+```
+
+---
+
+## 🔹 Example
+
+PVC:
+
+```
+Request: 1Gi
+StorageClass: fast-storage
+```
+
+👉 PV is created automatically
+
+---
+
+## 🔹 Use Cases
+
+* Cloud environments (AWS, Azure, GCP)
+* Production systems
+* Auto-scaling applications
+
+---
+
+## 🔹 Advantages
+
+✔ Automatic storage creation
+✔ Scalable
+✔ Less manual work
+✔ Efficient resource usage
+
+---
+
+## ❌ Drawbacks
+
+❌ Requires StorageClass setup
+❌ Depends on cloud/storage provider
+
+---
+
+# 🔹 5. STATIC vs DYNAMIC (Comparison)
+
+| Feature     | Static          | Dynamic            |
+| ----------- | --------------- | ------------------ |
+| PV Creation | Manual          | Automatic          |
+| Effort      | High            | Low                |
+| Scalability | Poor            | High               |
+| Best Use    | Local / Testing | Production / Cloud |
+
+---
+
+# 🔹 6. Real-Time Flow (MongoDB Example)
+
+```
+User Data (Aravind,22)
+        ↓
+Mongo Pod (/data/db)
+        ↓
+PVC
+        ↓
+PV (static) OR Auto PV (dynamic)
+        ↓
+Disk Storage
+```
+
+👉 Pod delete ayina → data safe
+
+---
+
+# 🔹 7. Key Points to Remember
+
+* Pod is temporary ❌
+* Volume (PV) is permanent ✅
+* PVC connects Pod to storage
+* Static = manual
+* Dynamic = automatic
+
+---
+
+# 🎯 FINAL ONE-LINE
+
+👉 Persistent storage ensures that application data is not lost even if pods are deleted or restarted.
+
+---
+

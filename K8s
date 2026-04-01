@@ -1,0 +1,133 @@
+How replicae set will craete when u create rs what are the components will come together do maintain the desired number of pods 
+Understand the flow how will replica set will create 
+If there are 2 containers in 2 different pods in a single node how they will communicate each other 
+U already replica set is created if i update new docker image why the new pod is not creating.
+
+
+kubernetes 
+
+master node and worker node 
+kube init 
+pod network -sub net ip -cidr 
+node ip
+service ip 
+How to set up cluster kubeadm 
+choes engineering
+componenets 
+Pod life cycle
+pod limitations
+Replica set and limitations
+Deployment -it is controller responsible for replicaset and pods
+Rollout and rollback and how to see history 
+Deployment strategy 
+1)Blue &grenn 
+2)Canary
+3)Toggles
+
+Blue &grenn:
+ Need 2 clusters one is green and blue 
+ blue is old version and green is new version 
+ here we move some traffic to new version and will test weather its working upto expectations or not 
+
+Canary
+
+
+
+
+
+ kubectl rollout history  deployment ey-cart-deployment --revision=2 -n aravind-ns
+ kubectl set image deployment/ey-cart-deployment ey-cart-container=muralisocial123/flipkart-app-web:v1.1.0
+
+ rollout 
+ rollout undo 
+ history 
+ revision 
+pause
+restart 
+resume
+port forwarding
+Service (obstraction layer)-cluster ip-load balancer-node port-externalName (service discovery )
+kubeproxy roundrobin algorithm 
+*kube-proxy performs simple load balancing.
+7️⃣ Handles Different Service Types
+Forward traffic from a Service to the correct Pod.
+kube-proxy configures iptables or IPVS rules in Linux.
+
+root@ip-10-0-1-215:/home/ubuntu/Aravind-K8-Manifest-files# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep service-cluster-ip-range
+    - --service-cluster-ip-range=10.96.0.0/12
+root@ip-10-0-1-215:/home/ubuntu/Aravind-K8-Manifest-files#
+ How we will get ip address
+create a deployment sevice config maps 
+
+
+
+*Why the metric server has to run in the kube-system namespace
+*How metric server collect metrics for different resources 
+*If metric server want to communicate with the api server what communication we need to establish
+
+API ,rest api,end points,env variables ,cofig maps,metric server,service accounts(control manager),how the metric server authenticate
+
+1️⃣ Node Metrics
+
+Metrics Server collects resource usage of each node.
+
+Node metrics:
+
+CPU usage – Total CPU used by all pods on that node
+
+Memory usage – Total memory used by pods on that node
+
+Example command:
+
+kubectl top nodes
+
+Example output:
+
+NAME        CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+node-1      250m         12%    1024Mi          40%
+2️⃣ Pod Metrics
+
+Metrics Server collects resource usage of each pod.
+
+Pod metrics:
+
+CPU usage of pod
+
+Memory usage of pod
+
+Example command:
+
+kubectl top pods
+
+Example output:
+
+NAME             CPU(cores)   MEMORY(bytes)
+frontend-pod     50m          120Mi
+backend-pod      30m          90Mi
+3️⃣ Container Metrics
+
+Each pod can have multiple containers, and metrics are collected per container.
+
+Container metrics:
+
+CPU usage of container
+
+Memory usage of container
+
+Example command:
+
+kubectl top pod <pod-name> --containers
+
+Example output:
+
+POD             CONTAINER        CPU(cores)   MEMORY(bytes)
+frontend-pod    nginx-container  40m          100Mi
+frontend-pod    sidecar          10m          20Mi
+
+
+2 deployments 
+
+need to create  configmap
+
+
+

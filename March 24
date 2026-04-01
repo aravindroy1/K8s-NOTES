@@ -1,0 +1,108 @@
+VOLUMES
+
+*Empty DIR
+*Host PAth MountBind
+*Static Provisinig
+*Dynamic Provisiniga
+
+cd /var/log/pods #The generated logs will store here
+cd /var/lib/etcd #The data of etcd available here
+
+*Static Provisinig:
+EBS
+Somebody has to provide disk where we nedd to store data
+NFS we need to configure the nfs 
+WE need o create a manualy disk and we need allocated path and storage 
+What is the persistenece volumes
+what is PVC
+*Dynamic Provisinig:
+Automatically create the disks for us 
+
+empty dir where we ahve to us ethis concept and real time use cases 
+
+
+empty dir:
+
+✅ Purpose
+
+Temporary storage inside a Pod
+
+🧠 Key Points
+Created when Pod starts
+Deleted when Pod is removed
+Shared between containers in same Pod
+📌 Use Cases
+Cache data
+Temporary files
+Sharing data between containers
+
+"A folder created for a Pod — used while Pod is alive — disappears when Pod dies"
+
+🔹 Lifecycle (VERY IMPORTANT)
+Pod starts → EmptyDir created (empty folder)
+Containers use it → read/write data
+Pod restarts (same Pod) → data stays ✅
+Pod deleted → data gone ❌
+
+🔹 Where is it stored?
+
+By default:
+
+Stored on Node disk (like /var/lib/kubelet/...)
+
+Option:
+
+Can be stored in RAM (memory) using medium: Memory
+
+*Need to check types of file ystem(4)
+
+so at first we updated the mongo-db -deployment yaml we updated it with the emoty dir volume 
+spec:
+      containers:
+      - name: mongo
+        image: mongo:7
+        ports:
+        - containerPort: 27017
+        
+        resources:
+
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        volumeMounts:
+        - name: fitness-data
+          mountPath: /data/db
+      volumes:
+      - name: fitness-data
+        emptyDir:
+          
+          sizeLimit: "512Mi"
+---
+
+and then we deploy it and then we checked pods status so we exposed it and then we created users in that and then we entered in to the 
+*Enter into the mongo pod kubectl exec -it <pod-name> -- bash
+*we need to enable mongosh 
+*then we need to see dbs --show dbs
+*then we need to use our db --use <db-name>
+*show collections
+*db.user.find()
+
+*kubectl get pod <pod-name> -n <namespace> -o yaml | grep uid
+we can get uid of pod(pod id)
+
+Worker node /var/lib/kubelet/pods/
+
+<pod-id>/volumes/emptyDir/
+
+
+*logs  
+*Need to look into OOM killed 
+
+
+HOST path 
+
+sudo mkdir -p /data/mongo
+sudo chmod 777 /data/mongo   # for testing only

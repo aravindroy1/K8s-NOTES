@@ -1,0 +1,536 @@
+*HA proxy 
+
+We have 1 cluster 1 mstaer and 2 worker nodes 
+
+so before we tried to expose our app with the nodeport so it is risky 
+so we are moving to haproxy 
+so now we need to create a new instance then install ha proxy and update the 
+
+PROCESS:
+🔴 5. HAProxy install (new EC2)
+sudo apt update
+sudo apt install haproxy -y
+🟠 6. HAProxy config
+
+👉 Open:
+
+sudo nano /etc/haproxy/haproxy.cfg
+Replace with:
+frontend http_front
+    bind *:80
+    default_backend k8s_nodes
+
+backend k8s_nodes
+    balance roundrobina
+    server node1 10.0.1.146:30007 check
+    server node2 10.0.1.61:30007 check
+    server node3 10.0.1.215:30007 check
+🟢 7. Restart HAProxy
+sudo systemctl restart haproxy
+🔵 8. Final Access (🔥 THIS IS YOUR ANSWER)
+
+👉 Browser lo:
+
+http://<HAProxy-Public-IP>
+
+# Kubernetes + HAProxy Architecture (NodePort Setup)
+
+## 🔷 Overall Flow
+
+User → HAProxy (Public EC2) → NodeIP:NodePort → Kubernetes Service → Pods → MongoDB
+
+---
+
+## 🔷 Step-by-Step Flow
+
+1. User Request
+
+   * User accesses application using:
+     http://<HAProxy-Public-IP>
+
+2. HAProxy (External Load Balancer)
+
+   * Listens on port 80
+   * Forwards traffic to Kubernetes nodes
+   * Uses round-robin load balancing
+
+3. NodePort (Cluster Entry Point)
+
+   * Example: 10.0.1.x:31000
+   * Open on all worker nodes
+   * Receives traffic from HAProxy
+
+4. kube-proxy (Internal Routing)
+
+   * Intercepts NodePort traffic
+   * Routes request to the correct service
+
+5. Kubernetes Service (photo-service)
+
+   * Type: NodePort
+   * Acts as internal load balancer
+   * Distributes traffic across pods
+
+6. Pods (Application Layer)
+
+   * Running photo-app containers
+   * Listening on port 3000
+   * Processes incoming requests
+
+7. Database Access (MongoDB)
+
+   * Accessed via: mongo-service
+   * Internal DNS resolution
+   * Connection string: mongodb://mongo-service:27017
+
+8. Response Flow
+   MongoDB → Pod → Service → NodePort → HAProxy → User
+
+---
+
+## 🔷 Components Responsibility
+
+* HAProxy
+  External load balancer (public access)
+
+* NodePort
+  Entry point into Kubernetes cluster
+
+* kube-proxy
+  Handles internal routing
+
+* Service
+  Load balances traffic between pods
+
+* Pods
+  Runs application logic
+
+* Mongo Service
+  Provides database access
+
+---
+
+## 🔷 Important Concepts
+
+* Double Load Balancing
+
+  1. HAProxy → Nodes
+  2. Service → Pods
+
+* Service Discovery
+
+  * mongo-service automatically resolves via Kubernetes DNS
+
+* Scalability
+
+  * Pods can scale without changing external access
+
+---
+
+## 🔷 HAProxy Sample Config
+
+frontend http_front
+bind *:80
+default_backend k8s_nodes
+
+backend k8s_nodes
+balance roundrobin
+server node1 10.0.1.146:31000 check
+server node2 10.0.1.61:31000 check
+server node3 10.0.1.215:31000 check
+
+---
+
+## 🔷 Final Summary
+
+HAProxy handles external traffic → NodePort exposes service → Service routes to pods → Pods process request → MongoDB responds
+
+
+# Kubernetes + HAProxy (NodePort) — Diagram Cheat Sheet
+
+```
+                🌐 USER (Browser)
+                        │
+                        ▼
+            ┌────────────────────────┐
+            │   HAProxy (Public EC2) │
+            │   Port: 80             │
+            └─────────┬──────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+ ┌────────────┐ ┌────────────┐ ┌────────────┐
+ │ Node 1     │ │ Node 2     │ │ Node 3     │
+ │10.0.1.146  │ │10.0.1.61   │ │10.0.1.215  │
+ │:31000      │ │:31000      │ │:31000      │
+ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘
+       │              │              │
+       └───────┬──────┴──────┬───────┘
+               ▼             ▼
+        ┌──────────────────────────┐
+        │   Kubernetes Service     │
+        │   photo-service          │
+        │   Type: NodePort         │
+        └─────────┬────────────────┘
+                  │
+     ┌────────────┼────────────┐
+     ▼            ▼            ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│  Pod 1   │ │  Pod 2   │ │  Pod 3   │
+│3000 port │ │3000 port │ │3000 port │
+└────┬─────┘ └────┬─────┘ └────┬─────┘
+     │            │            │
+     └────────────┴────────────┘
+                  │
+                  ▼
+        ┌──────────────────────┐
+        │   Mongo Service      │
+        │   (ClusterIP)        │
+        └─────────┬────────────┘
+                  │
+                  ▼
+           ┌────────────┐
+           │ Mongo Pod  │
+           │ 27017 port │
+           └────────────┘
+```
+
+---
+
+## 🔁 Request Flow
+
+```
+User
+ → HAProxy (Public IP:80)
+ → NodeIP:31000
+ → kube-proxy
+ → photo-service
+ → Pod (3000)
+ → mongo-service
+ → MongoDB
+ → Response back same path
+```
+
+---
+
+## ⚡ Key Points
+
+* Entry Point → HAProxy
+* Cluster Entry → NodePort (31000)
+* Internal LB → Service
+* Execution → Pods
+* Data Layer → MongoDB
+
+---
+
+## 🔥 One Line
+
+```
+User → HAProxy → NodePort → Service → Pods → DB → Response
+```
+
+
+
+# 🚀 Kubernetes HPA + HAProxy (Complete Notes)
+
+---
+
+# 🔷 1. Architecture Overview
+
+User → HAProxy (Public EC2) → NodeIP:NodePort → Service → Pods → MongoDB
+
+---
+
+# 🔷 2. NodePort Setup
+
+* Service type changed to NodePort
+* Example:
+  NodePort → 31000
+
+Access:
+http://<NodeIP>:31000
+
+---
+
+# 🔷 3. HAProxy Setup
+
+Installed HAProxy on separate EC2
+
+Config:
+
+frontend http_front
+bind *:80
+default_backend k8s_nodes
+
+backend k8s_nodes
+balance roundrobin
+server node1 10.0.1.146:31000 check
+server node2 10.0.1.61:31000 check
+server node3 10.0.1.215:31000 check
+
+Access:
+http://<HAProxy-Public-IP>
+
+---
+
+HPA (Horizontal Pod Autoscaler)
+
+## Purpose
+
+Automatically scale pods based on CPU usage
+
+---
+
+## HPA YAML
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+name: photo-hpa
+namespace: photo-ns
+spec:
+scaleTargetRef:
+apiVersion: apps/v1
+kind: Deployment
+name: photo-deployment
+
+minReplicas: 3
+maxReplicas: 10
+
+behavior:
+scaleUp:
+stabilizationWindowSeconds: 0
+
+```
+scaleDown:
+  stabilizationWindowSeconds: 10
+  policies:
+  - type: Percent
+    value: 50
+    periodSeconds: 60
+```
+
+metrics:
+
+* type: Resource
+  resource:
+  name: cpu
+  target:
+  type: Utilization
+  averageUtilization: 5
+
+---
+
+# 🔷 5. HPA Working Logic
+
+CPU > threshold → Scale UP
+CPU < threshold → Scale DOWN
+
+Range:
+minReplicas ≤ pods ≤ maxReplicas
+
+---
+
+# 🔷 6. HPA Flow
+
+1. Metrics Server collects CPU
+2. HPA checks CPU usage
+3. If CPU > threshold → increase replicas
+4. If CPU < threshold → decrease replicas
+5. Deployment creates/deletes pods
+
+---
+
+
+
+---
+
+# 🔷 8. Load Testing (Apache Benchmark)
+
+Install:
+
+sudo apt install apache2-utils -y
+
+Run:
+
+ab -n 20000 -c 100 http://10.0.1.146:31000/
+
+---
+
+# 🔷 9. Monitoring Commands
+
+Watch pods:
+
+kubectl get pods -n photo-ns -w
+
+Watch HPA:
+
+kubectl get hpa -n photo-ns -w
+
+Check CPU:
+
+kubectl top pods -n photo-ns
+
+---
+
+# 🔷 10. Scale Up Behavior
+
+* High load → CPU increases
+* HPA increases pods quickly
+
+Example:
+3 → 5 → 7 → 10
+
+---
+
+# 🔷 11. Scale Down Behavior
+
+* Load stopped → CPU decreases
+* HPA reduces pods slowly
+
+Example:
+10 → 5 → 3
+
+---
+
+# 🔷 12. Scale Down Control
+
+Configured using:
+
+behavior:
+scaleDown:
+stabilizationWindowSeconds: 10
+policies:
+- type: Percent
+value: 50
+
+Meaning:
+
+* Wait 10 seconds
+* Reduce 50% pods every 60 sec
+
+---
+
+# 🔷 13. Important Concepts
+
+* HPA overrides deployment replicas
+* No need separate config for scale down
+* Same threshold controls both up & down
+* Scale up = fast
+* Scale down = slow
+
+---
+
+# 🔷 14. Common Issues
+
+1. Pods Pending
+   → Not enough node resources
+
+2. HPA not working
+   → Metrics server missing
+
+3. Service not reachable
+   → Wrong namespace / DNS
+
+4. NodePort not working
+   → Security group issue
+
+---
+
+# 🔷 15. Key Commands Summary
+
+kubectl apply -f file.yaml
+kubectl get hpa -n photo-ns
+kubectl describe hpa photo-hpa -n photo-ns
+kubectl top pods -n photo-ns
+kubectl get pods -n photo-ns -w
+
+---
+
+# 🔷 Final Summary
+
+HAProxy → NodePort → Service → Pods
+HPA monitors CPU → scales pods up/down automatically
+Load testing triggers scaling behavior
+
+---
+
+# 🔥 One Line
+
+HPA automatically scales pods based on CPU, and behavior settings control how fast it scales down.
+
+
+# 🚀 HPA Flow Architecture (End-to-End)
+
+```
+             🌐 USER / LOAD (ab / busybox)
+                           │
+                           ▼
+            ┌──────────────────────────┐
+            │  Kubernetes Service      │
+            │  (photo-service)         │
+            └───────────┬──────────────┘
+                        │
+         ┌──────────────┼──────────────┐
+         ▼              ▼              ▼
+  ┌──────────┐   ┌──────────┐   ┌──────────┐
+  │  Pod 1   │   │  Pod 2   │   │  Pod 3   │
+  │ (3000)   │   │ (3000)   │   │ (3000)   │
+  └────┬─────┘   └────┬─────┘   └────┬─────┘
+       │              │              │
+       └──────────────┴──────────────┘
+                        │
+                        ▼
+             ┌──────────────────────┐
+             │   Mongo Service      │
+             └──────────┬───────────┘
+                        │
+                        ▼
+                 ┌────────────┐
+                 │ Mongo Pod  │
+                 └────────────┘
+```
+
+# 🔄 HPA Control Flow
+
+```
+     ┌────────────────────────────┐
+     │      Metrics Server        │
+     │  (collects CPU usage)      │
+     └────────────┬───────────────┘
+                  │
+                  ▼
+     ┌────────────────────────────┐
+     │  Horizontal Pod Autoscaler │
+     │        (HPA)               │
+     └────────────┬───────────────┘
+                  │
+                  ▼
+     ┌────────────────────────────┐
+     │      Deployment            │
+     │  (photo-deployment)        │
+     └────────────┬───────────────┘
+                  │
+                  ▼
+     ┌────────────────────────────┐
+     │   Pods scale up / down     │
+     └────────────────────────────┘
+```
+
+# 🔥 Combined Flow (Simple)
+
+Load → Service → Pods → CPU ↑
+↓
+Metrics Server → HPA → Deployment → Pods ↑
+
+Load ↓ → CPU ↓
+↓
+HPA → Deployment → Pods ↓
+
+---
+
+# ⚡ One Line Flow
+
+User Load → Service → Pods → CPU → Metrics → HPA → Deployment → Pods Scale
+
+need to implement karpenter

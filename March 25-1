@@ -1,0 +1,145 @@
+🔹 NFS (Network File System)
+✅ Definition
+Shared storage over network
+Multiple pods can access same data
+🔹 Key Idea
+One storage → many pods
+Data stored outside node
+🔹 Flow
+Pod → PVC → PV → NFS Server → Storage
+🔹 Features
+Supports ReadWriteMany (RWX)
+Data persists
+Works across multiple nodes
+🔹 Use Cases
+Shared storage (multiple pods)
+File storage (images, docs)
+Logs storage
+Multi-node applications
+🔹 Advantage
+Same data accessible from all pods
+🔹 Limitation
+Network dependency
+Slightly slower than local disk
+🎯 One-Line
+
+👉 NFS is a network-based shared storage used by multiple pods simultaneously
+
+
+
+CSI:
+
+PVC created
+   ↓
+K8s checks StorageClass
+   ↓
+StorageClass says → use AWS / NFS / etc
+   ↓
+CSI Driver triggered
+   ↓
+CSI creates PV (actual storage)
+   ↓
+PVC ↔ PV bind
+   ↓
+Pod uses it
+
+
+# 📘 StorageClass & CSI (Short Notes)
+
+---
+
+# 🔹 StorageClass
+
+* Defines **how storage should be created**
+* Used in **dynamic provisioning**
+* Specifies **type of storage (AWS, Azure, NFS, etc.)**
+* Contains **provisioner (CSI driver name)**
+
+👉 Example:
+
+```
+StorageClass → instructions
+```
+
+---
+
+# 🔹 CSI Driver
+
+* Plugin that **creates and manages storage**
+* Connects Kubernetes with external storage
+* Creates **PV automatically**
+* Attaches and mounts storage to Pod
+
+👉 Example:
+
+```
+CSI → creates storage
+```
+
+---
+
+# 🔹 Flow
+
+```
+PVC → StorageClass → CSI Driver → PV → Pod
+```
+
+---
+
+# 🔹 Key Difference
+
+* StorageClass = instructions
+* CSI Driver = execution
+
+---
+
+# 🎯 One-Line
+
+👉 StorageClass defines how storage is created, and CSI driver actually creates the storage.
+
+---
+
+How pv will bind with the pvc?
+what are the components will come together to bind the pv with pvc?
+To bring the external storage inside the cluster on pv how this pv will work inside the cluster 
+How pvc will mount with the pod? and who is playng the role 
+
+🔹 1. How PV binds with PVC?
+
+👉 Binding happens based on matching conditions
+
+✅ Conditions checked:
+Storage size (e.g., 1Gi)
+Access mode (ReadWriteOnce, ReadWriteMany)
+StorageClass (if specified)
+
+🔹 2. Components involved in binding
+
+👉 These components work together:
+
+Component	         Role
+PV	              Actual storage
+PVC	           Request
+StorageClass	  Defines type (for dynamic)
+Kubernetes       Controller	Matches & binds
+CSI Driver	     Creates PV (dynamic case)
+
+🔹 3. How external storage comes into cluster (PV role)
+
+👉 PV acts as a bridge to external storage
+
+🔹 Example (NFS)
+nfs:
+  server: 192.168.1.100
+  path: /nfs-data
+
+👉 What happens:
+
+External Storage (NFS / AWS Disk)
+        ↓
+PV (represents it in K8s)
+        ↓
+Cluster can now use it
+
+👉 PV = representation of external storage inside cluster
+

@@ -1,0 +1,222 @@
+# 📘 NFS Server Setup & Testing Documentation (Kubernetes)
+
+---
+
+# 🔹 1. Objective
+
+To configure an **NFS (Network File System) server** and use it as **shared storage** for Kubernetes pods.
+
+---
+
+# 🔹 2. Architecture
+
+```
+NFS Server (/nfs-data)
+        ↓
+Worker Node (mount via nfs-client)
+        ↓
+Kubernetes Pod (via PV & PVC)
+```
+
+---
+
+# 🔹 3. NFS Server Setup (Server Node)
+
+## ✅ Step 1: Install NFS Server
+
+```
+sudo apt update
+sudo apt install nfs-kernel-server -y
+```
+
+---
+
+## ✅ Step 2: Create Shared Directory
+
+```
+sudo mkdir -p /nfs-data
+```
+
+---
+
+## ✅ Step 3: Set Permissions
+
+```
+sudo chown -R nobody:nogroup /nfs-data
+sudo chmod -R 777 /nfs-data
+```
+
+---
+
+## ✅ Step 4: Configure Exports
+
+Edit file:
+
+```
+sudo nano /etc/exports
+```
+
+Add:
+
+```
+/nfs-data *(rw,sync,no_subtree_check,no_root_squash)
+```
+
+---
+
+## ✅ Step 5: Apply Configuration
+
+```
+sudo exportfs -a
+sudo systemctl restart nfs-kernel-server
+```
+
+---
+
+## ✅ Step 6: Verify Export
+
+```
+sudo exportfs -v
+```
+
+✔ Confirms NFS share is active
+
+---
+
+# 🔹 4. Worker Node Setup
+
+## ✅ Step 1: Install NFS Client
+
+```
+sudo apt update
+sudo apt install nfs-common -y
+```
+
+---
+
+## ✅ Step 2: Create Mount Point
+
+```
+sudo mkdir -p /home/test-nfs
+```
+
+---
+
+# 🔹 5. Manual NFS Testing
+
+## ✅ Step 1: Mount NFS
+
+```
+sudo mount <NFS-SERVER-IP>:/nfs-data /home/test-nfs
+```
+
+---
+
+## ✅ Step 2: Verify Mount
+
+```
+df -h | grep nfs
+```
+
+---
+
+## ✅ Step 3: Write Test (Worker → Server)
+
+```
+cd /home/test-nfs
+echo "hello from worker" > test.txt
+```
+
+---
+
+## ✅ Step 4: Verify on Server
+
+```
+ls /nfs-data
+```
+
+✔ File should be visible
+
+---
+
+## ✅ Step 5: Reverse Test (Server → Worker)
+
+On server:
+
+```
+echo "hello from server" > /nfs-data/server.txt
+```
+
+On worker:
+
+```
+ls /home/test-nfs
+```
+
+✔ File should appear
+
+---
+
+## ✅ Step 6: Unmount (Optional)
+
+```
+sudo umount /home/test-nfs
+```
+
+---
+
+# 🔹 6. Kubernetes Integration (Concept)
+
+```
+Pod → PVC → PV (NFS) → NFS Server (/nfs-data)
+```
+
+* PV represents NFS storage
+* PVC requests storage
+* Pod mounts storage via PVC
+
+---
+
+# 🔹 7. Key Observations
+
+* NFS provides **shared storage across nodes**
+* Supports **ReadWriteMany (RWX)**
+* Data persists independent of Pod lifecycle
+* Multiple pods can access same data
+
+---
+
+# 🔹 8. Common Issues & Fixes
+
+## ❌ Permission Denied
+
+```
+sudo chown -R nobody:nogroup /nfs-data
+sudo chmod -R 777 /nfs-data
+```
+
+---
+
+## ❌ Mount Error
+
+* Check NFS service:
+
+```
+sudo systemctl status nfs-kernel-server
+```
+
+---
+
+## ❌ Export Not Working
+
+```
+sudo exportfs -v
+```
+
+---
+
+# 🎯 Conclusion
+
+NFS was successfully configured as a **centralized shared storage system**, tested manually, and prepared for integration with Kubernetes using PV and PVC.
+
+---
