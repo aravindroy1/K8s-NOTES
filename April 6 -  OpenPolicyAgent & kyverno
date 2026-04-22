@@ -1,0 +1,211 @@
+kubectl get events -n aravind-ns
+
+# Kubernetes Admission Control – OPA Gatekeeper & Kyverno Documentation
+
+---
+
+## 1. Introduction
+
+Admission Controllers in Kubernetes validate and control requests before they are persisted in the cluster.
+
+Flow:
+User → kubectl apply → API Server → Admission Controller → Allow/Deny → etcd
+
+Policy engines:
+
+* OPA Gatekeeper (uses Rego)
+* Kyverno (uses YAML)
+
+---
+
+## 2. OPA Gatekeeper
+
+### 2.1 Key Concepts
+
+* ConstraintTemplate → Defines policy logic
+* Constraint → Applies the policy
+* Rego → Policy language
+
+---
+
+### 2.2 Installation
+
+kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+
+---
+
+### 2.3 Example Policy – Block Latest Image
+
+ConstraintTemplate:
+
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+name: k8snotlatest
+spec:
+crd:
+spec:
+names:
+kind: K8sNotLatest
+targets:
+- target: admission.k8s.gatekeeper.sh
+rego: |
+package k8snotlatest
+
+```
+    violation[{"msg": msg}] {
+      container := input.review.object.spec.containers[_]
+      endswith(container.image, ":latest")
+      msg := "Latest image not allowed"
+    }
+```
+
+---
+
+Constraint:
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sNotLatest
+metadata:
+name: no-latest
+spec:
+match:
+kinds:
+- apiGroups: [""]
+kinds: ["Pod"]
+
+---
+
+### 2.4 Important Notes
+
+* Both Template and Constraint are required
+* Policies apply to all resources
+* Always exclude system namespaces:
+
+spec:
+match:
+excludedNamespaces:
+- kube-system
+- gatekeeper-system
+- kyverno
+
+---
+
+### 2.5 Common OPA Policies
+
+* No latest image
+* Required labels
+* Resource limits required
+* No privileged containers
+* Allowed registries
+
+---
+
+## 3. Kyverno
+
+### 3.1 Key Concepts
+
+* ClusterPolicy → Single YAML for policy
+* Rule → Defines validation logic
+* Pattern → YAML-based matching
+
+---
+
+### 3.2 Installation
+
+kubectl create -f https://github.com/kyverno/kyverno/releases/latest/download/install.yaml
+
+---
+
+### 3.3 Example Policy – Block Latest Image
+
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+name: no-latest-tag
+
+spec:
+validationFailureAction: Enforce
+rules:
+- name: block-latest
+match:
+resources:
+kinds:
+- Pod
+validate:
+message: "Latest image not allowed"
+pattern:
+spec:
+containers:
+- image: "!*:latest"
+
+---
+
+### 3.4 Kyverno Modes
+
+* Enforce → Blocks resource
+* Audit → Allows but logs warning
+* Mutate → Modifies resource automatically
+
+---
+
+### 3.5 Example – Required Labels
+
+validate:
+message: "Label app is required"
+pattern:
+metadata:
+labels:
+app: "?*"
+
+---
+
+## 4. OPA vs Kyverno
+
+## Feature                OPA Gatekeeper        Kyverno
+
+Language              Rego                  YAML
+Files Required        2                     1
+Ease of Use           Medium                Easy
+Flexibility           High                  Medium
+Kubernetes Native     No                    Yes
+
+---
+
+## 5. Troubleshooting (Real Scenario)
+
+Issue:
+Kyverno pods not created
+
+Root Cause:
+OPA policy (resource limits) blocked Kyverno pods
+
+Error:
+denied by admission webhook "validation.gatekeeper.sh"
+CPU limit required
+
+Fix:
+
+kubectl delete k8sresourcelimits resource-limits
+
+kubectl rollout restart deploy -n kyverno
+
+---
+
+## 6. Debug Commands
+
+kubectl get events -n <namespace>
+kubectl describe deploy <name>
+kubectl get constraints
+kubectl get pods -n <namespace>
+
+---
+
+## 7. Summary
+
+* OPA Gatekeeper uses Rego and requires two YAML files
+* Kyverno uses native YAML and is simpler
+* Admission controllers affect all resources including system components
+* Always exclude system namespaces to avoid blocking core services
+
+---

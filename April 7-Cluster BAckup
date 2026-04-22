@@ -1,0 +1,125 @@
+# 📦 ETCD BACKUP & RESTORE USING NFS (KUBERNETES)
+
+============================================================
+🔷 STEP 1: NFS SERVER SETUP (Run on NFS Server)
+============================================================
+
+sudo mkdir -p /nfs/etcd-backup
+sudo chmod -R 777 /nfs/etcd-backup
+
+sudo nano /etc/exports
+
+Add:
+------------------------------------------------------------
+/nfs/etcd-backup *(rw,sync,no_subtree_check,no_root_squash)
+------------------------------------------------------------
+
+sudo exportfs -rav
+sudo systemctl restart nfs-kernel-server
+showmount -e
+
+
+============================================================
+🔷 STEP 2: MASTER NODE SETUP (Mount NFS)
+============================================================
+
+sudo mkdir -p /mnt/nfs-backup
+
+sudo mount -t nfs -o vers=4 10.0.0.79:/nfs/etcd-backup /mnt/nfs-backup
+
+# If mount fails:
+sudo apt update
+sudo apt install -y nfs-common
+
+
+============================================================
+🔷 STEP 3: INSTALL ETCD CLIENT
+============================================================
+
+sudo apt install -y etcd-client
+
+# Verify
+etcdctl version
+
+
+============================================================
+🔷 STEP 4: TAKE ETCD BACKUP
+============================================================
+
+ETCDCTL_API=3 etcdctl snapshot save /mnt/nfs-backup/backup.db \
+--endpoints=https://127.0.0.1:2379 \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--cert=/etc/kubernetes/pki/etcd/server.crt \
+--key=/etc/kubernetes/pki/etcd/server.key
+
+
+============================================================
+🔷 STEP 5: VERIFY BACKUP
+============================================================
+
+ls /mnt/nfs-backup
+
+# Expected output:
+backup.db
+
+
+============================================================
+🔷 STEP 6: CHECK SNAPSHOT STATUS (OPTIONAL)
+============================================================
+
+ETCDCTL_API=3 etcdctl snapshot status /mnt/nfs-backup/backup.db -w table
+
+
+============================================================
+🔥 ETCD RESTORE PROCESS
+============================================================
+
+⚠️ NOTE:
+- Restore to a new directory
+- Update etcd manifest after restore
+
+
+============================================================
+🔷 STEP 7: RESTORE SNAPSHOT
+============================================================
+
+ETCDCTL_API=3 etcdctl snapshot restore /mnt/nfs-backup/backup.db \
+--data-dir=/var/lib/etcd-restore
+
+
+============================================================
+🔷 STEP 8: UPDATE ETCD MANIFEST
+============================================================
+
+sudo nano /etc/kubernetes/manifests/etcd.yaml
+
+Find:
+--data-dir=/var/lib/etcd
+
+Replace with:
+--data-dir=/var/lib/etcd-restore
+
+
+============================================================
+🔷 STEP 9: RESTART ETCD
+============================================================
+
+sudo systemctl restart kubelet
+
+
+============================================================
+🔷 STEP 10: VERIFY CLUSTER
+============================================================
+
+kubectl get nodes
+kubectl get pods -A
+
+
+============================================================
+🔥 RESULT
+============================================================
+
+✔ ETCD backup created
+✔ Stored in NFS
+✔ Cluster restored successfully
+✔ Ready for disaster recovery

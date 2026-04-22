@@ -1,0 +1,10 @@
+OIDC (git apps ) how we ae authenticating to the clustr 
+git hub container registry 
+how we need to use the cache image 
+How we need to go with the manual approval (Chages made -> Need Approval --> Then argocd dep)
+cd --> argo cd
+Sinagle argo cd multiple application 
+
+Blue-Green startegy using argo rollouts 
+Secret management REp level ,org level ,env level 
+What is gi

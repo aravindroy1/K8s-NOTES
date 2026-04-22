@@ -1,0 +1,288 @@
+# Kubernetes Taints and Tolerations - Complete Documentation
+
+---
+
+## 📌 1. Introduction
+
+Taints and Tolerations are used in Kubernetes to control **which pods can be scheduled on which nodes**.
+
+* **Taint (Node level)** → Restricts pods
+* **Toleration (Pod level)** → Allows pods
+
+👉 Helps in:
+
+* Workload isolation
+* Node-specific scheduling
+* Maintenance handling
+* Fault tolerance
+
+---
+
+## 📌 2. Taint Syntax
+
+```bash
+kubectl taint nodes <node-name> key=value:effect
+```
+
+### Example:
+
+```bash
+kubectl taint nodes aravind-node env=prod:NoSchedule
+```
+
+---
+
+## 📌 3. Taint Components
+
+* **Key** → env
+* **Value** → prod
+* **Effect** → NoSchedule
+
+---
+
+## 📌 4. Effects
+
+### 🔹 1. NoSchedule
+
+* Pods will NOT be scheduled on the node
+
+### 🔹 2. PreferNoSchedule
+
+* Scheduler tries to avoid placing pods
+
+### 🔹 3. NoExecute
+
+* New pods → Not scheduled
+* Existing pods → Evicted (removed)
+
+---
+
+## 📌 5. Tolerations (Pod YAML)
+
+Tolerations must be defined inside:
+
+```
+spec → template → spec
+```
+
+### Example:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+
+  template:
+    metadata:
+      labels:
+        app: myapp
+
+    spec:
+      tolerations:
+      - key: "env"
+        operator: "Equal"
+        value: "prod"
+        effect: "NoSchedule"
+
+      containers:
+      - name: nginx
+        image: nginx
+```
+
+---
+
+## 📌 6. Operators
+
+### 🔹 Equal
+
+* Matches exact key and value
+
+### 🔹 Exists
+
+* Matches only key (value ignored)
+
+---
+
+## 📌 7. Important Rules
+
+* Taints are applied on **nodes**
+* Tolerations are applied on **pods**
+* If no matching toleration → pod will not be scheduled
+* Tolerations DO NOT guarantee scheduling, only allow it
+
+---
+
+## 📌 8. Re-Tainting Nodes
+
+Kubernetes does NOT allow direct modification of taints.
+
+### Step 1: Remove existing taint
+
+```bash
+kubectl taint nodes aravind-node env=prod:NoSchedule-
+```
+
+### Step 2: Apply new taint
+
+```bash
+kubectl taint nodes aravind-node env=prod:NoExecute
+```
+
+---
+
+## 📌 9. Remove Taint
+
+```bash
+kubectl taint nodes aravind-node env=prod:NoSchedule-
+```
+
+---
+
+## 📌 10. Verify Taints
+
+```bash
+kubectl describe node aravind-node
+```
+
+---
+
+## 📌 11. Real-Time Scenarios
+
+### 🔹 1. Production Node Isolation
+
+```bash
+kubectl taint nodes prod-node env=prod:NoSchedule
+```
+
+---
+
+### 🔹 2. Database Node
+
+```bash
+kubectl taint nodes db-node db=true:NoSchedule
+```
+
+---
+
+### 🔹 3. GPU Nodes
+
+```bash
+kubectl taint nodes gpu-node gpu=true:NoSchedule
+```
+
+---
+
+### 🔹 4. Node Maintenance
+
+```bash
+kubectl taint nodes aravind-node maintenance=true:NoExecute
+```
+
+---
+
+### 🔹 5. Faulty Node Isolation
+
+```bash
+kubectl taint nodes aravind-node unstable=true:NoExecute
+```
+
+---
+
+## 📌 12. Automatic Taints (Kubernetes)
+
+Kubernetes automatically applies:
+
+* node.kubernetes.io/not-ready:NoExecute
+* node.kubernetes.io/unreachable:NoExecute
+
+👉 Used for:
+
+* Node failure handling
+* Pod eviction
+* Self-healing
+
+---
+
+## 📌 13. Debugging
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Check for:
+
+```
+node(s) had taint that the pod didn't tolerate
+```
+
+---
+
+## 📌 14. Drain Node (Recommended for Maintenance)
+
+```bash
+kubectl drain aravind-node --ignore-daemonsets
+```
+
+👉 Automatically:
+
+* Evicts pods
+* Marks node unschedulable
+
+---
+
+## 📌 15. Key Differences
+
+| Feature  | Taints/Tolerations  | Node Selector    |
+| -------- | ------------------- | ---------------- |
+| Control  | Node restricts pods | Pod selects node |
+| Use Case | Isolation           | Placement        |
+
+---
+
+## 📌 16. Interview One-Liner
+
+“Taints are applied on nodes to restrict pod scheduling, and tolerations are applied on pods to allow them to run on tainted nodes. NoExecute is used for eviction during failures or maintenance.”
+
+---
+
+## 📌 17. Summary
+
+* NoSchedule → Block scheduling
+* PreferNoSchedule → Soft restriction
+* NoExecute → Evict pods
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: aravind-dep 
+  namespace: aravind-ns
+spec:
+  replicas: 4
+  
+  selector:
+    matchLabels:
+      app: aravind-app
+  template:
+    metadata:
+      labels:
+        app: aravind-app
+    spec: 
+      tolerations:
+        - key: "env"
+          operator: "Equal"/"Existed"
+          value: "prod"
+          effect: "NoSchedule"/NoExecute/PrefNoSchedule
+      containers:
+        - name: flower-cont 
+          image: aravindroy1/flower-img:latest
+          ports:
+            - containerPort: 3015
+            

@@ -1,0 +1,8 @@
+WHAT WHy WHere How ANd trobleshooting ANd subtopics  internal flow along with the architecture 
+
+production level 
+
+Logs and Diagonisis 
+*Cont Logs,NOde LOgs Master node compnent logs 
+How to ship the logs to sidecar-Containers and then to Monitoring dashboards 
+and trobleshooting 

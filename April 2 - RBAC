@@ -1,0 +1,216 @@
+1)When u execute ecommand kubectl cmd how the kubectl athenticating ur cluster 
+2)What is mean by contxt in k8 how it is play a crucial role when coming to the authentication and autheriasatn 
+3)What is mean by cert,key where we can find all the certificates in a master node what is the path
+4)What is mean by OIDC and how we are trying to give acess to cluster if it is on premesis cluster how we are going to maintain the OIDC authentication
+5) If i have 10 sof dev how we are going to provide the k8 cluster access to each and everyone 
+^)What is roll,roll binding,cluster and cluster binding 
+
+
+We have to create a group called devlopment under developments there are multiple users *murali*mohan*Asad*Ashutosh*Dhaninga another group testing unders this we have users *Likitha And *Pavithra creates this users and groups instead of giving permission to particular user we have to assign permission to group the devopemt group has access for pods and deployments and testing group should has acces for only services 
+
+
+
+
+openssl genrsa -out murali.key 2048
+
+openssl req -new -key murali.key -out murali.csr \
+-subj "/CN=murali/O=development"
+
+openssl x509 -req -in murali.csr \
+ -CA /etc/kubernetes/pki/ca.crt \
+ -CAkey /etc/kubernetes/pki/ca.key \
+ -CAcreateserial \
+ -out murali.crt -days 365
+
+ # Kubernetes RBAC Documentation (Group-Based Access)
+
+## Objective
+Implement group-based access control in Kubernetes using RBAC:
+- development group → pods & deployments access
+- testing group → services access
+- Namespace: team3-ns
+
+---
+
+## Concept
+- Kubernetes does NOT manage users internally
+- Authentication is done using certificates
+- Groups are assigned using:
+  O = group-name
+- RBAC maps groups to permissions
+
+---
+
+## Step 1 — Create Users with Groups
+
+### Development Users
+
+#### murali
+openssl genrsa -out murali.key 2048
+openssl req -new -key murali.key -out murali.csr -subj "/CN=murali/O=development"
+
+#### mohan
+openssl genrsa -out mohan.key 2048
+openssl req -new -key mohan.key -out mohan.csr -subj "/CN=mohan/O=development"
+
+#### asad
+openssl genrsa -out asad.key 2048
+openssl req -new -key asad.key -out asad.csr -subj "/CN=asad/O=development"
+
+#### ashutosh
+openssl genrsa -out ashutosh.key 2048
+openssl req -new -key ashutosh.key -out ashutosh.csr -subj "/CN=ashutosh/O=development"
+
+#### dhaninga
+openssl genrsa -out dhaninga.key 2048
+openssl req -new -key dhaninga.key -out dhaninga.csr -subj "/CN=dhaninga/O=development"
+
+---
+
+### Testing Users
+
+#### likitha
+openssl genrsa -out likitha.key 2048
+openssl req -new -key likitha.key -out likitha.csr -subj "/CN=likitha/O=testing"
+
+#### pavithra
+openssl genrsa -out pavithra.key 2048
+openssl req -new -key pavithra.key -out pavithra.csr -subj "/CN=pavithra/O=testing"
+
+---
+
+## Step 2 — Sign Certificates
+
+openssl x509 -req -in murali.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out murali.crt -days 365
+openssl x509 -req -in mohan.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out mohan.crt -days 365
+openssl x509 -req -in asad.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out asad.crt -days 365
+openssl x509 -req -in ashutosh.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out ashutosh.crt -days 365
+openssl x509 -req -in dhaninga.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out dhaninga.crt -days 365
+
+openssl x509 -req -in likitha.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out likitha.crt -days 365
+openssl x509 -req -in pavithra.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out pavithra.crt -days 365
+
+---
+
+## Step 3 — Create Role for Development
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: team3-ns
+  name: dev-role
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get","list","watch","create","delete"]
+
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get","list","watch","create","delete"]
+
+---
+
+## Step 4 — Bind Development Group
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-group-binding
+  namespace: team3-ns
+subjects:
+- kind: Group
+  name: development
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dev-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+## Step 5 — Create Role for Testing
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: team3-ns
+  name: test-role
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get","list","watch"]
+
+---
+
+## Step 6 — Bind Testing Group
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: test-group-binding
+  namespace: team3-ns
+subjects:
+- kind: Group
+  name: testing
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: test-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+## Step 7 — Configure kubeconfig
+
+### murali
+kubectl config set-credentials murali --client-certificate=/home/ubuntu/murali.crt --client-key=/home/ubuntu/murali.key
+kubectl config set-context murali-context --cluster=kubernetes --user=murali --namespace=team3-ns
+
+### mohan
+kubectl config set-credentials mohan --client-certificate=/home/ubuntu/mohan.crt --client-key=/home/ubuntu/mohan.key
+kubectl config set-context mohan-context --cluster=kubernetes --user=mohan --namespace=team3-ns
+
+### asad
+kubectl config set-credentials asad --client-certificate=/home/ubuntu/asad.crt --client-key=/home/ubuntu/asad.key
+kubectl config set-context asad-context --cluster=kubernetes --user=asad --namespace=team3-ns
+
+### ashutosh
+kubectl config set-credentials ashutosh --client-certificate=/home/ubuntu/ashutosh.crt --client-key=/home/ubuntu/ashutosh.key
+kubectl config set-context ashutosh-context --cluster=kubernetes --user=ashutosh --namespace=team3-ns
+
+### dhaninga
+kubectl config set-credentials dhaninga --client-certificate=/home/ubuntu/dhaninga.crt --client-key=/home/ubuntu/dhaninga.key
+kubectl config set-context dhaninga-context --cluster=kubernetes --user=dhaninga --namespace=team3-ns
+
+### likitha
+kubectl config set-credentials likitha --client-certificate=/home/ubuntu/likitha.crt --client-key=/home/ubuntu/likitha.key
+kubectl config set-context likitha-context --cluster=kubernetes --user=likitha --namespace=team3-ns
+
+### pavithra
+kubectl config set-credentials pavithra --client-certificate=/home/ubuntu/pavithra.crt --client-key=/home/ubuntu/pavithra.key
+kubectl config set-context pavithra-context --cluster=kubernetes --user=pavithra --namespace=team3-ns
+
+---
+
+## Step 8 — Switch Context
+
+kubectl config use-context murali-context
+
+---
+
+## Step 9 — Verify Access
+
+Development user:
+kubectl auth can-i create pods -n team3-ns
+
+Testing user:
+kubectl auth can-i create pods -n team3-ns
+
+---
+
+## Final Summary
+
+- Users are authenticated using certificates
+- Groups are assigned using O field
+- Role + RoleBinding restrict access to namespace
+- Context is required to connect user to cluster

@@ -1,0 +1,196 @@
+Git Branch Strategy and
+* branch protection rules
+
+What is parameterised pipe line 
+triggers in pipe line 
+
+# 🚀 CI/CD PIPELINE NOTES (GitHub Actions + Docker + Trivy)
+
+---
+
+# 🔹 1. OVERVIEW
+
+This pipeline performs:
+
+PR:
+
+* Validate code
+* Install dependencies
+* Build Docker image (test only)
+
+Push (main branch):
+
+* Build Docker image
+* Scan image using Trivy
+* Push image to DockerHub
+
+---
+
+# 🔹 2. TRIGGERS
+
+on:
+pull_request:
+branches:
+- main
+push:
+branches:
+- main
+
+---
+
+# 🔹 3. REQUIRED SECRETS (GitHub)
+
+Add in: Settings → Secrets → Actions
+
+* DOCKER_USERNAME
+* DOCKER_PASSWORD
+
+---
+
+# 🔹 4. COMPLETE YAML FILE
+
+name: CI + CD Pipeline
+
+on:
+pull_request:
+branches:
+- main
+push:
+branches:
+- main
+
+jobs:
+pipeline:
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v3
+
+  - name: Setup Node
+    uses: actions/setup-node@v3
+    with:
+      node-version: '18'
+
+  - name: Install Dependencies
+    run: npm install
+
+  - name: Build Docker Image
+    run: |
+      docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-app:${{ github.sha }} .
+      docker tag ${{ secrets.DOCKER_USERNAME }}/devops-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
+
+  - name: Scan Image with Trivy
+    if: github.event_name == 'push'
+    uses: aquasecurity/trivy-action@master
+    with:
+      image-ref: ${{ secrets.DOCKER_USERNAME }}/devops-app:${{ github.sha }}
+      format: table
+      exit-code: 1
+      severity: CRITICAL,HIGH
+
+  - name: Login to DockerHub
+    if: github.event_name == 'push'
+    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+  - name: Push Docker Images
+    if: github.event_name == 'push'
+    run: |
+      docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:${{ github.sha }}
+      docker push ${{ secrets.DOCKER_USERNAME }}/devops-app:latest
+```
+
+---
+
+# 🔹 5. PIPELINE FLOW
+
+PR FLOW:
+
+* Trigger: pull_request
+* Steps:
+
+  * Install dependencies
+  * Build Docker image
+* No scan
+* No push
+
+PUSH FLOW:
+
+* Trigger: push (main)
+* Steps:
+
+  * Build Docker image
+  * Scan image using Trivy
+  * Push image to DockerHub
+
+---
+
+# 🔹 6. IMAGE TAGGING
+
+Two tags are used:
+
+1. SHA tag:
+   devops-app:<commit-id>
+
+2. Latest tag:
+   devops-app:latest
+
+Purpose:
+
+* SHA → version tracking
+* latest → deployment
+
+---
+
+# 🔹 7. COMMON ERRORS
+
+1. YAML indentation error
+2. Wrong runner name (ubuntu-latest)
+3. Invalid package.json
+4. Missing DockerHub secrets
+5. Dockerfile errors
+
+---
+
+# 🔹 8. IMPORTANT CONCEPTS
+
+CI:
+
+* Runs on pull request
+* Validates code before merge
+
+CD:
+
+* Runs on push to main
+* Builds and pushes Docker image
+
+Trivy:
+
+* Security scanning tool
+* Blocks pipeline if vulnerabilities found
+
+---
+
+# 🔹 9. COMMAND FLOW
+
+git checkout -b feature/test
+git add .
+git commit -m "test"
+git push origin feature/test
+
+→ Create PR → CI runs
+
+→ Merge → Push triggers CD
+
+---
+
+# 🔹 10. FINAL UNDERSTANDING
+
+PR → Validation (CI)
+Push → Build + Scan + Deploy (CD)
+
+CI = Safety gate
+CD = Delivery pipeline
+
+---

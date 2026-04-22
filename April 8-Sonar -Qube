@@ -1,0 +1,466 @@
+Code Quality:
+Code Quality = How good your code is
+
+Key Factors:
+Readability → easy to understand
+Maintainability → easy to modify
+Reliability → fewer bugs
+Security → no vulnerabilities
+Efficiency → optimized performance
+
+
+SAST = Static Application Security Testing
+
+👉 It analyzes source code without running it
+
+Key Points:
+Finds security issues early (before deployment)
+Works during development (IDE / CI pipeline)
+Part of DevSecOps (Shift Left)
+Detects:
+SQL Injection
+XSS (Cross-site scripting)
+Hardcoded passwords
+Security misconfigurations
+
+👉 Example tools:
+
+SonarQube / SonarCloud
+Checkmarx
+Fortify
+
+
+🚀 How to Setup SonarCloud (STEP-BY-STEP)
+✅ Step 1: Create Account
+Go to 👉 https://sonarcloud.io
+Login using GitHub
+✅ Step 2: Create Organization
+Click "+" → Create Organization
+Select your GitHub org/repo access
+Choose Free plan (for public repos)
+✅ Step 3: Import Project
+Click Analyze new project
+Select your GitHub repo
+Click Set up
+✅ Step 4: Generate Token
+Go to My Account → Security
+Generate Token
+Copy it (important)
+✅ Step 5: Add SonarCloud in GitHub Actions
+
+Create file:
+
+.github/workflows/sonar.yml
+Paste this 👇
+name: SonarCloud Scan
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          args: >
+            -Dsonar.organization=YOUR_ORG
+            -Dsonar.projectKey=YOUR_PROJECT_KEY
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+✅ Step 6: Add Secret in GitHub
+
+Go to:
+👉 Repo → Settings → Secrets → Actions
+
+Add:
+
+SONAR_TOKEN = your_token
+✅ Step 7: Run Pipeline
+Push code to GitHub
+GitHub Actions will run
+SonarCloud will analyze your code
+✅ Step 8: View Report
+Open SonarCloud dashboard
+Check:
+Bugs
+Vulnerabilities
+Code smells
+Coverage
+🎯 Key Concepts in Sonar
+Quality Gate → Pass/Fail based on rules
+Technical Debt → Time to fix issues
+Coverage → % of tested code
+💡 Simple Flow
+Developer → Push Code → GitHub Actions → SonarCloud Scan → Report
+🚀 Bonus (For Interview)
+
+👉 Short Answer:
+
+SonarQube → Tool for code quality & security analysis
+Code Quality → Measure of how clean, maintainable & secure code is
+SAST → Static testing to find vulnerabilities without executing code
+
+
+TASK:
+Creating a pipeline for Code Quality Desginig the custom quality gates ON Friday 
+emil need to send fo rcorrespondng person Where How ANd What 
+
+need to sedn a report to the dev team and break the pipeline
+
+
+# 📄 SonarQube – GitHub Integration Documentation
+
+## 🔷 Overview
+
+This document explains how to integrate SonarQube Server with GitHub using:
+
+* GitHub App (for repository access)
+* GitHub OAuth App (for authentication)
+
+This setup enables:
+
+* Importing GitHub repositories
+* Running code analysis
+* Enforcing Quality Gates
+* Breaking pipeline on failure
+
+---
+
+# 🔷 1. Tools Used
+
+* SonarQube Server
+* GitHub
+* GitHub Actions (CI/CD)
+
+---
+
+# 🔷 2. Architecture Flow
+
+Developer → GitHub → SonarQube → Quality Gate → Pass/Fail
+
+---
+
+# 🔷 3. GitHub App Configuration (Repository Access)
+
+## Step 1: Create GitHub App
+
+Go to:
+https://github.com/settings/apps
+
+Click:
+New GitHub App
+
+### Fill Details:
+
+* App Name: sonarqube-integration
+* Homepage URL: http://<SONARQUBE-IP>:9000
+
+### Webhook:
+
+* URL: http://<SONARQUBE-IP>:9000/api/alm_settings/webhook
+* Secret: sonar123
+
+### Permissions:
+
+Repository Permissions:
+
+* Contents → Read
+* Pull Requests → Read & Write
+* Checks → Read & Write
+* Metadata → Read
+
+Click Create App
+
+---
+
+## Step 2: Generate Credentials
+
+From GitHub App dashboard:
+
+* App ID → Copy
+* Client ID → Copy
+* Client Secret → Generate and copy
+* Private Key → Generate (.pem file) and copy full content
+* Webhook Secret → same as given (sonar123)
+
+---
+
+## Step 3: Install GitHub App
+
+Click:
+Install App → Select Account → Install
+
+---
+
+# 🔷 4. SonarQube GitHub App Integration
+
+Go to:
+
+Administration → Configuration → DevOps Platform Integrations
+
+Click:
+Create Configuration → GitHub
+
+### Fill:
+
+* Configuration Name: github-config
+* GitHub API URL: https://api.github.com
+* GitHub App ID: (from GitHub)
+* Client ID: (from GitHub)
+* Client Secret: (from GitHub)
+* Private Key: (paste .pem content)
+* Webhook Secret: sonar123
+
+Click Save
+
+---
+
+# 🔷 5. GitHub OAuth App Configuration (Authentication)
+
+## Step 1: Create OAuth App
+
+Go to:
+https://github.com/settings/developers
+
+Click:
+OAuth Apps → New OAuth App
+
+### Fill:
+
+* Application Name: sonarqube-oauth
+* Homepage URL: http://<SONARQUBE-IP>:9000
+* Authorization Callback URL:
+  http://<SONARQUBE-IP>:9000/oauth2/callback/github
+
+Click Register Application
+
+---
+
+## Step 2: Generate Credentials
+
+* Client ID → Copy
+* Client Secret → Generate and copy
+
+---
+
+# 🔷 6. Configure OAuth in SonarQube
+
+Go to:
+
+Administration → General Settings → Authentication → GitHub
+
+Click:
+Create Configuration
+
+Paste:
+
+* Client ID
+* Client Secret
+
+Click Save
+
+---
+
+# 🔷 7. Common Errors & Fixes
+
+## Error 1: redirect_uri mismatch
+
+Cause:
+Incorrect callback URL
+
+Fix:
+Ensure:
+http://<SONARQUBE-IP>:9000/oauth2/callback/github
+
+---
+
+## Error 2: Missing permissions
+
+Cause:
+GitHub App permissions not set
+
+Fix:
+
+* Pull Requests → Read & Write
+* Checks → Read & Write
+
+---
+
+## Error 3: GitHub App not installed
+
+Fix:
+Install App under GitHub settings
+
+---
+
+## Error 4: OAuth not configured
+
+Fix:
+Create OAuth App and configure in SonarQube
+
+---
+
+# 🔷 8. Final Result
+
+After successful setup:
+
+* GitHub repositories visible in SonarQube
+* Code can be analyzed
+* Quality Gates applied
+* Pipeline can be controlled
+
+---
+
+# 🔷 9. Key Concepts
+
+## GitHub App
+
+Used for:
+
+* Repository access
+* Pull request decoration
+* Secure integration
+
+## OAuth App
+
+Used for:
+
+* User authentication
+* Login to GitHub from SonarQube
+
+## Client ID
+
+Public identifier of application
+
+## Client Secret
+
+Private key used for secure authentication
+
+---
+
+# 🔷 10. Conclusion
+
+We successfully integrated SonarQube with GitHub using both GitHub App and OAuth App.
+
+This setup enables secure communication, automated code analysis, and enforcement of quality standards in the CI/CD pipeline.
+
+---
+# 🔷 11. What We Did Yesterday (CI/CD + Quality Gates)
+
+## 🔹 1. CI/CD Pipeline Setup
+
+We implemented a CI/CD pipeline using GitHub Actions to automate code quality checks.
+
+### Flow:
+
+* Developer pushes code to GitHub
+* Pipeline is triggered automatically
+* SonarQube scans the code
+* Quality Gate is evaluated
+* Pipeline either passes or fails
+
+---
+
+## 🔹 2. GitHub Actions Pipeline Configuration
+
+We created a workflow file inside:
+
+.github/workflows/sonar.yml
+
+### Pipeline Code:
+
+```yaml
+name: SonarQube Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=my-project
+            -Dsonar.host.url=http://<SONARQUBE-IP>:9000
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+```
+
+---
+
+## 🔹 3. Custom Quality Gate Design
+
+We created custom rules in SonarQube to control code quality.
+
+### Conditions:
+
+* Code Coverage < 80% → FAIL
+* Bugs > 0 → FAIL
+* Vulnerabilities > 0 → FAIL
+* Code Smells > 10 → FAIL
+
+---
+
+## 🔹 4. Pipeline Breaking Mechanism
+
+The pipeline is automatically stopped when Quality Gate fails.
+
+### Working:
+
+* SonarQube analyzes code
+* Quality Gate evaluates conditions
+* If FAILED → Pipeline stops
+* Developer must fix issues
+
+---
+
+## 🔹 5. Email Notification Setup
+
+We configured email alerts for failures.
+
+### Steps:
+
+* Go to Administration → Configuration → Email Notification
+* Configure SMTP server
+* Enable notifications
+
+### Purpose:
+
+* Notify developers instantly
+* Reduce debugging time
+* Improve response speed
+
+---
+
+## 🔹 6. Final Outcome
+
+* Automated code analysis
+* Enforced coding standards
+* Prevented bad code deployment
+* Improved overall software quality
+
+---
+
+## 🔹 7. Key Learning
+
+* CI/CD integration with SonarQube
+* Custom Quality Gate creation
+* Pipeline failure handling
+* Real-time developer notification system
+
+---

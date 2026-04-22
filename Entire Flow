@@ -1,0 +1,167 @@
+docker build -t flow_practice:v1.0.0 .
+docker images
+docker login
+docker tag flow_practice:v1.0.0 aravindroy1/flow_practice:v1.0.0
+docker push aravindroy1/flow_practice:v1.0.0
+
+Created deployment.yaml and service.yaml type: ClusterIP
+Created a gateway :
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: main-gateway
+spec:
+  gatewayClassName: kgateway
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+
+Create a HTTPRoute:
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: frontend-route
+spec:
+  parentRefs:
+  - name: main-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: frontend-service
+      port: 80
+
+    
+
+🔥 Complete Flow (Your Architecture)
+User → HAProxy → Gateway → HTTPRoute → Service → Pod
+🧠 Step-by-step flow (what actually happens)
+🔹 1. User (Browser)
+
+User opens:
+
+http://13.235.246.195
+
+👉 This is your HAProxy public IP
+
+🔹 2. HAProxy (Entry Point)
+
+HAProxy receives request:
+
+Frontend: listens on port 80
+
+Then forwards to backend:
+
+10.0.1.146:31300
+10.0.1.61:31300
+
+👉 These are Kubernetes worker nodes (NodePort)
+
+🔹 3. NodePort (Gateway Entry)
+NodeIP:31300
+
+👉 This is mapped to:
+
+Gateway Service (main-gateway)
+
+✔ This is how traffic ENTERS Kubernetes
+
+🔹 4. Gateway (kgateway)
+
+Your Gateway:
+
+kind: Gateway
+name: main-gateway
+
+👉 Acts like:
+
+Layer 7 load balancer inside cluster
+
+✔ Accepts HTTP traffic on port 80
+
+🔹 5. HTTPRoute (Routing Logic)
+kind: HTTPRoute
+
+👉 Defines:
+
+"Send all / traffic → frontend-service"
+
+✔ Works like routing rules
+
+🔹 6. Service (ClusterIP)
+kind: Service
+type: ClusterIP
+
+👉 Internal load balancer:
+
+frontend-service → selects pods
+
+✔ No external access (internal only)
+
+🔹 7. Pod (Your Application)
+Container running your frontend (HTML app)
+
+👉 Finally serves:
+
+HTML
+CSS
+JS (your FitTrack Pro app)
+🔁 Full Request Journey
+1. User hits: http://13.235.246.195
+
+2. HAProxy receives request
+   ↓
+3. Forwards to: 10.0.1.146:31300
+
+4. NodePort receives request
+   ↓
+5. Sends to Gateway (main-gateway)
+
+6. Gateway checks HTTPRoute
+   ↓
+7. HTTPRoute sends to frontend-service
+
+8. Service forwards to Pod
+   ↓
+9. Pod returns HTML response
+
+10. Response goes back same path
+🔥 Architecture Visualization
+[ User ]
+    ↓
+[ HAProxy (Public IP) ]
+    ↓
+[ NodeIP:31300 ]
+    ↓
+[ Gateway ]
+    ↓
+[ HTTPRoute ]
+    ↓
+[ ClusterIP Service ]
+    ↓
+[ Pod (App) ]
+💡 Key Concepts (VERY IMPORTANT)
+✅ Why HAProxy?
+External entry point
+Load balancing across nodes
+✅ Why NodePort?
+To expose Gateway to outside world
+✅ Why Gateway?
+Advanced routing (better than Ingress)
+✅ Why HTTPRoute?
+Defines traffic rules (path-based routing)
+✅ Why ClusterIP?
+Internal communication only (secure)
+🚨 Common Mistakes (you avoided)
+HAProxy → ClusterIP ❌
+Direct NodePort access ❌ (not production)
+Skipping HTTPRoute ❌
+🎯 Interview One-Line Answer
+
+👉
+“User traffic hits HAProxy, which forwards to Kubernetes NodePort exposing the Gateway. The Gateway uses HTTPRoute to route requests to a ClusterIP service, which then forwards traffic to the application pods.”
