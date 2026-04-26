@@ -1,41 +1,10 @@
-  https://ubuntu.com/aws/pro
+frontend http_front
+    bind *:80
+    mode http
+    default_backend dev_k8s_gateway
 
-Expanded Security Maintenance for Applications is not enabled.
-
-54 updates can be applied immediately.
-To see these additional updates run: apt list --upgradable
-
-4 additional security updates can be applied with ESM Apps.
-Learn more about enabling ESM Apps service at https://ubuntu.com/esm
-
-
-Last login: Sun Apr 26 11:07:25 2026 from 13.233.177.5
-ubuntu@ip-10-0-1-215:~$ sudo su
-root@ip-10-0-1-215:/home/ubuntu# kubectl get svc -n gateway-ns
-No resources found in gateway-ns namespace.
-root@ip-10-0-1-215:/home/ubuntu# kubectl create ns gateway-ns
-Error from server (AlreadyExists): namespaces "gateway-ns" already exists
-root@ip-10-0-1-215:/home/ubuntu# kubectl get svc -n gateway-ns
-No resources found in gateway-ns namespace.
-root@ip-10-0-1-215:/home/ubuntu# kubectl get gateay 
-error: the server doesn't have a resource type "gateay"
-root@ip-10-0-1-215:/home/ubuntu# kubectl get gateway 
-NAME              CLASS      ADDRESS   PROGRAMMED   AGE
-washify-gateway   kgateway             True         2d
-root@ip-10-0-1-215:/home/ubuntu# kubectl get svc 
-NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
-auth-service           ClusterIP      10.111.128.101   <none>        8000/TCP       3d1h
-booking-service        ClusterIP      10.101.83.25     <none>        8000/TCP       3d1h
-car-wash-service       ClusterIP      10.100.197.143   <none>        8000/TCP       3d1h
-frontend-service       ClusterIP      10.111.102.182   <none>        80/TCP         3d
-kubernetes             ClusterIP      10.96.0.1        <none>        443/TCP        27d
-mongodb                ClusterIP      10.104.227.160   <none>        27017/TCP      3d1h
-notification-service   ClusterIP      10.96.208.201    <none>        8000/TCP       3d1h
-review-service         ClusterIP      10.105.172.201   <none>        8000/TCP       3d1h
-washify-gateway        LoadBalancer   10.109.31.110    <pending>     80:32563/TCP   2d
-root@ip-10-0-1-215:/home/ubuntu# kubectl get nodes -o wide
-NAME            STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION    CONTAINER-RUNTIME
-ip-10-0-1-146   Ready    <none>          47d   v1.34.5   10.0.1.146    <none>        Ubuntu 24.04.3 LTS   6.17.0-1012-aws   containerd://1.7.28
-ip-10-0-1-215   Ready    control-plane   47d   v1.34.5   10.0.1.215    <none>        Ubuntu 24.04.3 LTS   6.17.0-1012-aws   containerd://1.7.28
-ip-10-0-1-61    Ready    <none>          47d   v1.34.5   10.0.1.61     <none>        Ubuntu 24.04.3 LTS   6.17.0-1009-aws   containerd://1.7.28
-root@ip-10-0-1-215:/home/ubuntu# 
+backend dev_k8s_gateway
+    mode http
+    balance roundrobin
+    server worker1 10.0.1.146:32563 check
+    server worker2 10.0.1.61:32563 check
