@@ -10,4 +10,5 @@ backend dev_k8s_gateway
     server worker2 10.0.1.61:32563 check
 
 
-curl -I http://10.0.1.146:32563
+root@ip-10-0-1-98:/home/ubuntu# curl -I http://10.0.1.146:32563
+curl: (7) Failed to connect to 10.0.1.146 port 32563 after 0 ms: Couldn't connect to server
