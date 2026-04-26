@@ -10,6 +10,9 @@ backend dev_k8s_gateway
     server worker2 10.0.1.61:32563 check
 
 
-root@ip-10-0-1-215:/home/ubuntu# kubectl get pods -n gateway-ns
 No resources found in gateway-ns namespace.
+root@ip-10-0-1-215:/home/ubuntu# kubectl get pods -A | grep gateway
+default                washify-gateway-7d489d4f56-zhpgv                    1/1     Running            2 (101m ago)     2d
+envoy-gateway-system   envoy-gateway-655f47c4c5-xggwr                      0/1     CrashLoopBackOff   120 (3m1s ago)   2d1h
+kgateway-system        kgateway-6489f464b7-rh7hw                           0/1     Running            31 (101m ago)    38d
 root@ip-10-0-1-215:/home/ubuntu# 
