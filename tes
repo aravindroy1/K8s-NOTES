@@ -10,22 +10,6 @@ backend dev_k8s_gateway
     server worker2 10.0.1.61:32563 check
 
 
-Broadcast message from systemd-journald@ip-10-0-1-98 (Sun 2026-04-26 12:41:10 UTC):
-
-haproxy[4824]: backend dev_k8s_gateway has no server available!
-
-
-Broadcast message from systemd-journald@ip-10-0-1-98 (Sun 2026-04-26 12:41:10 UTC):
-
-haproxy[4824]: backend dev_k8s_gateway has no server available!
-
-
-Broadcast message from systemd-journald@ip-10-0-1-98 (Sun 2026-04-26 12:41:10 UTC):
-
-haproxy[4824]: backend dev_k8s_gateway has no server available!
-
-
-Broadcast message from systemd-journald@ip-10-0-1-98 (Sun 2026-04-26 12:41:10 UTC):
-
-haproxy[4824]: backend dev_k8s_gateway has no server available!
-
+root@ip-10-0-1-215:/home/ubuntu# kubectl get pods -n gateway-ns
+No resources found in gateway-ns namespace.
+root@ip-10-0-1-215:/home/ubuntu# 
